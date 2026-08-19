@@ -1,0 +1,63 @@
+--- a/src/coreclr/tools/Common/JitInterface/CorInfoImpl.cs	2026-08-19 10:58:02.454086203 -0400
++++ b/src/coreclr/tools/Common/JitInterface/CorInfoImpl.cs	2026-08-19 10:58:29.650943083 -0400
+@@ -3207,12 +3207,56 @@
+             extendOthers = true;
+         }
+ 
+-#pragma warning disable CA1822 // Mark members as static
+         private void reportRichMappings(InlineTreeNode* inlineTree, uint numInlineTree, RichOffsetMapping* mappings, uint numMappings)
+-#pragma warning restore CA1822 // Mark members as static
+         {
+-            Marshal.FreeHGlobal((IntPtr)inlineTree);
+-            Marshal.FreeHGlobal((IntPtr)mappings);
++            try
++            {
++                string? dumpDir = Environment.GetEnvironmentVariable("ILC_INLINE_DUMP_DIR");
++                if (dumpDir is not null && numInlineTree > 0)
++                {
++                    Directory.CreateDirectory(dumpDir);
++                    MethodDesc rootMethod = _methodCodeNode.Method;
++                    var sb = new System.Text.StringBuilder(4096);
++                    sb.Append("{\"root\":\"");
++                    sb.Append(rootMethod.ToString().Replace("\\", "\\\\").Replace("\"", "\\\""));
++                    sb.Append("\",\"nodes\":[");
++                    for (uint i = 0; i < numInlineTree; i++)
++                    {
++                        if (i > 0) sb.Append(',');
++                        MethodDesc m = HandleToObject(inlineTree[i].Method);
++                        sb.Append("{\"m\":\"");
++                        sb.Append(m.ToString().Replace("\\", "\\\\").Replace("\"", "\\\""));
++                        sb.Append("\",\"il\":");
++                        sb.Append(inlineTree[i].ILOffset);
++                        sb.Append(",\"c\":");
++                        sb.Append(inlineTree[i].Child);
++                        sb.Append(",\"s\":");
++                        sb.Append(inlineTree[i].Sibling);
++                        sb.Append('}');
++                    }
++                    sb.Append("],\"maps\":[");
++                    for (uint i = 0; i < numMappings; i++)
++                    {
++                        if (i > 0) sb.Append(',');
++                        sb.Append("{\"n\":");
++                        sb.Append(mappings[i].NativeOffset);
++                        sb.Append(",\"i\":");
++                        sb.Append(mappings[i].Inlinee);
++                        sb.Append(",\"il\":");
++                        sb.Append(mappings[i].ILOffset);
++                        sb.Append('}');
++                    }
++                    sb.Append("]}\n");
++                    string safeName = rootMethod.Name.Replace('/', '_').Replace('<', '_').Replace('>', '_');
++                    string path = Path.Combine(dumpDir, safeName + ".inlines.jsonl");
++                    File.AppendAllText(path, sb.ToString());
++                }
++            }
++            finally
++            {
++                Marshal.FreeHGlobal((IntPtr)inlineTree);
++                Marshal.FreeHGlobal((IntPtr)mappings);
++            }
+         }
+ 
+ #pragma warning disable CA1822 // Mark members as static
