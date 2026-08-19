@@ -1,6 +1,8 @@
---- a/src/coreclr/tools/Common/JitInterface/CorInfoImpl.cs	2026-08-19 10:58:02.454086203 -0400
-+++ b/src/coreclr/tools/Common/JitInterface/CorInfoImpl.cs	2026-08-19 10:58:29.650943083 -0400
-@@ -3207,12 +3207,56 @@
+diff --git a/src/runtime/src/coreclr/tools/Common/JitInterface/CorInfoImpl.cs b/src/runtime/src/coreclr/tools/Common/JitInterface/CorInfoImpl.cs
+index e6fd0d4f7..873188915 100644
+--- a/src/runtime/src/coreclr/tools/Common/JitInterface/CorInfoImpl.cs
++++ b/src/runtime/src/coreclr/tools/Common/JitInterface/CorInfoImpl.cs
+@@ -3207,12 +3207,56 @@ private void getVars(CORINFO_METHOD_STRUCT_* ftn, ref uint cVars, ILVarInfo** va
              extendOthers = true;
          }
  
@@ -12,7 +14,7 @@
 -            Marshal.FreeHGlobal((IntPtr)mappings);
 +            try
 +            {
-+                string? dumpDir = Environment.GetEnvironmentVariable("ILC_INLINE_DUMP_DIR");
++                string dumpDir = Environment.GetEnvironmentVariable("ILC_INLINE_DUMP_DIR");
 +                if (dumpDir is not null && numInlineTree > 0)
 +                {
 +                    Directory.CreateDirectory(dumpDir);
@@ -61,3 +63,19 @@
          }
  
  #pragma warning disable CA1822 // Mark members as static
+diff --git a/src/runtime/src/coreclr/tools/Common/JitInterface/JitConfigProvider.cs b/src/runtime/src/coreclr/tools/Common/JitInterface/JitConfigProvider.cs
+index 459e20a8b..1728e7438 100644
+--- a/src/runtime/src/coreclr/tools/Common/JitInterface/JitConfigProvider.cs
++++ b/src/runtime/src/coreclr/tools/Common/JitInterface/JitConfigProvider.cs
+@@ -92,6 +92,11 @@ public JitConfigProvider(IEnumerable<CorJitFlag> jitFlags, IEnumerable<KeyValueP
+                 _config[param.Key] = param.Value;
+             }
+ 
++            if (Environment.GetEnvironmentVariable("ILC_INLINE_DUMP_DIR") != null)
++            {
++                _config["RichDebugInfo"] = "1";
++            }
++
+             UnmanagedInstance = CreateUnmanagedInstance();
+         }
+ 
